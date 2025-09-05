@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'chatDetailPage.dart';
 import 'model.dart';
 import 'qrCodePage.dart';
+import 'qrPage.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -146,16 +147,43 @@ class _HomePageState extends State<HomePage> {
       //   backgroundColor: const Color(0xFF2575FC),
       //   child: const Icon(Icons.chat),
       // ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const QRScanPage()),
-          );
-        },
-        backgroundColor: const Color(0xFF2575FC),
-        child: const Icon(Icons.qr_code_scanner),
-      ),
+      
+      floatingActionButton: Column(
+  mainAxisAlignment: MainAxisAlignment.end,
+  children: [
+    FloatingActionButton(
+      onPressed: _createNewChat, // New chat button
+      backgroundColor: const Color(0xFF2575FC),
+      child: const Icon(Icons.chat),
+      heroTag: "chatFab",
+    ),
+    const SizedBox(height: 16), // spacing between buttons
+    FloatingActionButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const QRScanPage()), // Scan QR
+        );
+      },
+      backgroundColor: const Color(0xFF2575FC),
+      child: const Icon(Icons.qr_code_scanner),
+      heroTag: "scanQrFab",
+    ),
+    const SizedBox(height: 16),
+    FloatingActionButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const MyQRPage()), // Show my QR
+        );
+      },
+      backgroundColor: const Color(0xFF2575FC),
+      child: const Icon(Icons.qr_code),
+      heroTag: "myQrFab",
+    ),
+  ],
+),
+
     );
   }
 }

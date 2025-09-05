@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:qr_code_scanner_plus/qr_code_scanner_plus.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'home.dart';
@@ -29,7 +29,7 @@ class _QRScanPageState extends State<QRScanPage> {
   void _onQRViewCreated(QRViewController ctrl) {
     controller = ctrl;
     controller!.scannedDataStream.listen((scanData) async {
-      if (scanned) return; // prevent multiple scans
+      if (scanned) return; // Prevent multiple scans
       scanned = true;
 
       final friendId = scanData.code; // The scanned userId
@@ -61,11 +61,15 @@ class _QRScanPageState extends State<QRScanPage> {
       // If chat doesn't exist, create it
       if (chat == null) {
         final chatId = _firestore.collection('chats').doc().id;
-        chat = Chat(id: chatId, name: "Friend Chat", participants: [currentUserId, friendId]);
+        chat = Chat(
+          id: chatId,
+          name: "Chat with Friend",
+          participants: [currentUserId, friendId],
+        );
 
         await _firestore.collection('chats').doc(chatId).set({
           'id': chatId,
-          'name': "Friend Chat",
+          'name': "Chat with Friend",
           'participants': [currentUserId, friendId],
           'createdBy': currentUserId,
           'createdAt': FieldValue.serverTimestamp(),
@@ -89,6 +93,13 @@ class _QRScanPageState extends State<QRScanPage> {
       body: QRView(
         key: qrKey,
         onQRViewCreated: _onQRViewCreated,
+        overlay: QrScannerOverlayShape(
+          borderColor: Colors.blue,
+          borderRadius: 10,
+          borderLength: 30,
+          borderWidth: 10,
+          cutOutSize: 250,
+        ),
       ),
     );
   }
