@@ -17,17 +17,35 @@ class _HomePageState extends State<HomePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Create a new chat with a name
+  /// Create a new chat manually by entering a friend's UID
   void _createNewChat() async {
     final TextEditingController controller = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("New Chat"),
+        backgroundColor: const Color(0xFF1E1E1E),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "New Chat",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         content: TextField(
           controller: controller,
-          decoration: const InputDecoration(hintText: "Enter your friend's UID"),
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: "Enter your friend's UID",
+            hintStyle: const TextStyle(color: Colors.white54),
+            filled: true,
+            fillColor: const Color(0xFF2C2C2C),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+          ),
         ),
         actions: [
           TextButton(
@@ -37,24 +55,27 @@ class _HomePageState extends State<HomePage> {
 
               if (friendId.isEmpty || friendId == currentUserId) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Invalid UID")));
+                  const SnackBar(content: Text("Invalid UID")),
+                );
                 return;
               }
 
-              // Fetch current user's name
-              final currentUserDoc = await _firestore.collection('users').doc(currentUserId).get();
-              final friendDoc = await _firestore.collection('users').doc(friendId).get();
+              // Fetch user details
+              final currentUserDoc =
+                  await _firestore.collection('users').doc(currentUserId).get();
+              final friendDoc =
+                  await _firestore.collection('users').doc(friendId).get();
 
               if (!friendDoc.exists) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Friend not found")));
+                  const SnackBar(content: Text("Friend not found")),
+                );
                 return;
               }
 
               final chatId = _firestore.collection('chats').doc().id;
               final now = DateTime.now();
 
-              // Store names map
               final namesMap = {
                 currentUserId: currentUserDoc.data()?['name'] ?? 'Me',
                 friendId: friendDoc.data()?['name'] ?? 'Friend',
@@ -71,13 +92,17 @@ class _HomePageState extends State<HomePage> {
 
               Navigator.pop(context);
             },
-            child: const Text("Create"),
+            child: const Text(
+              "Create",
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+            ),
           ),
         ],
       ),
     );
   }
 
+  /// Get the display name for chat (friend's name)
   String _getChatName(Chat chat) {
     final currentUserId = _auth.currentUser!.uid;
     String chatName = "Chat";
@@ -95,9 +120,18 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF121212), // Dark background
       appBar: AppBar(
-        title: const Text("Chat App"),
-        backgroundColor: const Color(0xFF2575FC),
+        title: const Text(
+          "Chit Chat",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
+        elevation: 4,
+        backgroundColor: const Color(0xFF1E1E1E),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: _firestore
@@ -110,63 +144,93 @@ class _HomePageState extends State<HomePage> {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No chats yet"));
+            return const Center(
+              child: Text(
+                "No chats yet",
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white54),
+              ),
+            );
           }
 
-          final chatDocs = snapshot.data!.docs;
-          final chats = chatDocs.map((doc) {
+          final chats = snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return Chat.fromMap(data);
           }).toList();
 
           chats.sort((a, b) {
-            final aTime = a.toMap()['createdAt'] as DateTime? ?? DateTime(1970);
-            final bTime = b.toMap()['createdAt'] as DateTime? ?? DateTime(1970);
-            return bTime.compareTo(aTime); // descending
+            final aTime =
+                a.toMap()['lastMessageAt'] as Timestamp? ?? Timestamp(0, 0);
+            final bTime =
+                b.toMap()['lastMessageAt'] as Timestamp? ?? Timestamp(0, 0);
+            return bTime.compareTo(aTime);
           });
 
           return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             itemCount: chats.length,
             itemBuilder: (context, index) {
               final chat = chats[index];
               final chatName = _getChatName(chat);
 
-              return ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Colors.blueAccent,
-                  child: Text(chatName.isNotEmpty ? chatName[0] : "?",
-                      style: const TextStyle(color: Colors.white)),
+              return Card(
+                color: const Color(0xFF1E1E1E),
+                elevation: 2,
+                margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                title: Text(chatName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: StreamBuilder<QuerySnapshot>(
-                  stream: _firestore
-                      .collection('chats')
-                      .doc(chat.id)
-                      .collection('messages')
-                      .orderBy('timestamp', descending: true)
-                      .limit(1)
-                      .snapshots(),
-                  builder: (context, msgSnapshot) {
-                    if (!msgSnapshot.hasData || msgSnapshot.data!.docs.isEmpty) {
-                      return const Text("No messages yet");
-                    }
-                    final lastMsgData =
-                        msgSnapshot.data!.docs.first.data() as Map<String, dynamic>;
-                    return Text(
-                      lastMsgData['text'] ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    radius: 24,
+                    backgroundColor: Colors.blueAccent,
+                    child: Text(
+                      chatName.isNotEmpty ? chatName[0].toUpperCase() : "?",
+                      style: const TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  title: Text(
+                    chatName,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  subtitle: StreamBuilder<QuerySnapshot>(
+                    stream: _firestore
+                        .collection('chats')
+                        .doc(chat.id)
+                        .collection('messages')
+                        .orderBy('timestamp', descending: true)
+                        .limit(1)
+                        .snapshots(),
+                    builder: (context, msgSnapshot) {
+                      if (!msgSnapshot.hasData ||
+                          msgSnapshot.data!.docs.isEmpty) {
+                        return const Text(
+                          "No messages yet",
+                          style: TextStyle(color: Colors.white54),
+                        );
+                      }
+                      final lastMsgData = msgSnapshot.data!.docs.first.data()
+                          as Map<String, dynamic>;
+                      return Text(
+                        lastMsgData['text'] ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white70),
+                      );
+                    },
+                  ),
+                  trailing: const Icon(Icons.chevron_right,
+                      color: Colors.white54, size: 24),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatDetailPage(chat: chat),
+                      ),
                     );
                   },
                 ),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatDetailPage(chat: chat),
-                    ),
-                  );
-                },
               );
             },
           );
@@ -175,35 +239,29 @@ class _HomePageState extends State<HomePage> {
       floatingActionButton: Column(
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          FloatingActionButton(
-            onPressed: _createNewChat, // New chat button
-            backgroundColor: const Color(0xFF2575FC),
-            child: const Icon(Icons.chat),
-            heroTag: "chatFab",
-          ),
           const SizedBox(height: 16),
           FloatingActionButton(
+            heroTag: "scanQrFab",
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const QRScanPage()),
               );
             },
-            backgroundColor: const Color(0xFF2575FC),
-            child: const Icon(Icons.qr_code_scanner),
-            heroTag: "scanQrFab",
+            backgroundColor: const Color(0xFF2C2C2C),
+            child: const Icon(Icons.qr_code_scanner, size: 28, color: Colors.white),
           ),
           const SizedBox(height: 16),
           FloatingActionButton(
+            heroTag: "myQrFab",
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MyQRPage()),
               );
             },
-            backgroundColor: const Color(0xFF2575FC),
-            child: const Icon(Icons.qr_code),
-            heroTag: "myQrFab",
+            backgroundColor: Colors.blueAccent,
+            child: const Icon(Icons.qr_code, size: 28, color: Colors.white),
           ),
         ],
       ),
