@@ -33,7 +33,8 @@ class _QRScanPageState extends State<QRScanPage> {
       scanned = true;
 
       final friendId = scanData.code; // The scanned userId
-      final currentUserId = _auth.currentUser!.uid;
+      final currentUser = _auth.currentUser!;
+      final currentUserId = currentUser.uid;
 
       if (friendId == null || friendId == currentUserId) {
         ScaffoldMessenger.of(context)
@@ -41,6 +42,17 @@ class _QRScanPageState extends State<QRScanPage> {
         Navigator.pop(context);
         return;
       }
+
+      // Fetch friend's name
+      final friendDoc =
+          await _firestore.collection('users').doc(friendId).get();
+      if (!friendDoc.exists) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text("User not found")));
+        Navigator.pop(context);
+        return;
+      }
+      final friendName = friendDoc['name'] ?? "Friend";
 
       // Check if chat already exists between the two users
       final chatQuery = await _firestore
@@ -58,19 +70,26 @@ class _QRScanPageState extends State<QRScanPage> {
         }
       }
 
-      // If chat doesn't exist, create it
+      // If chat doesn't exist, create it with proper names
       if (chat == null) {
         final chatId = _firestore.collection('chats').doc().id;
+        final now = DateTime.now();
         chat = Chat(
           id: chatId,
-          name: "Chat with Friend",
+          name: friendName, // display friend’s name for current user
           participants: [currentUserId, friendId],
+          createdBy: currentUserId,
+          createdAt: now,
+          lastMessageAt: now,
         );
 
         await _firestore.collection('chats').doc(chatId).set({
           'id': chatId,
-          'name': "Chat with Friend",
           'participants': [currentUserId, friendId],
+          'name': {
+            currentUserId: friendName, // what you see
+            friendId: currentUser.displayName ?? "Me", // what friend sees
+          },
           'createdBy': currentUserId,
           'createdAt': FieldValue.serverTimestamp(),
           'lastMessageAt': FieldValue.serverTimestamp(),

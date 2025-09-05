@@ -2,29 +2,40 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Chat {
   final String id;
-  final String name;
   final List<String> participants;
+  final Map<String, String>? name;  // Add this field
+  final String createdBy;
+  final DateTime createdAt;
+  final DateTime lastMessageAt;
 
   Chat({
     required this.id,
-    required this.name,
     required this.participants,
+    this.name,  // Add this to constructor
+    required this.createdBy,
+    required this.createdAt,
+    required this.lastMessageAt,
   });
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'name': name,
       'participants': participants,
-      'createdAt': DateTime.now(),
+      'name': name,  // Add this to map
+      'createdBy': createdBy,
+      'createdAt': createdAt,
+      'lastMessageAt': lastMessageAt,
     };
   }
 
   factory Chat.fromMap(Map<String, dynamic> map) {
     return Chat(
       id: map['id'],
-      name: map['name'],
-      participants: List<String>.from(map['participants'] ?? []),
+      participants: List<String>.from(map['participants']),
+      name: map['names'] != null ? Map<String, String>.from(map['names']) : null,  // Add this
+      createdBy: map['createdBy'],
+      createdAt: (map['createdAt'] as Timestamp).toDate(),
+      lastMessageAt: (map['lastMessageAt'] as Timestamp).toDate(),
     );
   }
 }

@@ -37,9 +37,21 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = _auth.currentUser!.uid;
+    String chatName = "Chat";
+    
+    // Get the other user's name from the names map
+    if (widget.chat.name != null) {
+      widget.chat.name!.forEach((uid, name) {
+        if (uid != currentUserId) {
+          chatName = name;
+        }
+      });
+    }
     return Scaffold(
+
       appBar: AppBar(
-        title: Text(widget.chat.name),
+        title: Text(chatName),
         backgroundColor: const Color(0xFF2575FC),
       ),
       body: Column(
