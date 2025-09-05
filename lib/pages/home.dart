@@ -34,6 +34,9 @@ class _HomePageState extends State<HomePage> {
                 await _firestore.collection('chats').doc(chatId).set({
                   'id': chatId,
                   'name': controller.text,
+                  'participants': [
+                    _auth.currentUser!.uid,
+                  ], // Only current user initially
                   'createdBy': _auth.currentUser!.uid,
                   'createdAt': DateTime.now().toIso8601String(),
                 });
@@ -55,21 +58,34 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: const Color(0xFF2575FC),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: _firestore.collection('chats').orderBy('createdAt').snapshots(),
+        stream: _firestore
+            .collection('chats')
+            .where('participants', arrayContains: _auth.currentUser!.uid)
+            .orderBy('createdAt')
+            .snapshots(),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+          if (!snapshot.hasData)
+            return const Center(child: CircularProgressIndicator());
 
           final chatDocs = snapshot.data!.docs;
           return ListView.builder(
             itemCount: chatDocs.length,
             itemBuilder: (context, index) {
-              final chat = Chat.fromMap(chatDocs[index].data() as Map<String, dynamic>);
+              final chat = Chat.fromMap(
+                chatDocs[index].data() as Map<String, dynamic>,
+              );
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: Colors.blueAccent,
-                  child: Text(chat.name[0], style: const TextStyle(color: Colors.white)),
+                  child: Text(
+                    chat.name[0],
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
-                title: Text(chat.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(
+                  chat.name,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 onTap: () {
                   Navigator.push(
                     context,
@@ -83,6 +99,7 @@ class _HomePageState extends State<HomePage> {
           );
         },
       ),
+
       floatingActionButton: FloatingActionButton(
         onPressed: _createNewChat,
         backgroundColor: const Color(0xFF2575FC),

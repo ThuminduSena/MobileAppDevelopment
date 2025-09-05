@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'model.dart'; // Chat and Message models
 
 class ChatDetailPage extends StatefulWidget {
   final Chat chat;
@@ -12,28 +12,54 @@ class ChatDetailPage extends StatefulWidget {
 }
 
 class _ChatDetailPageState extends State<ChatDetailPage> {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final TextEditingController _controller = TextEditingController();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final TextEditingController _messageController = TextEditingController();
 
-  void _sendMessage() async {
-    if (_controller.text.trim().isEmpty) return;
+  Future<void> _sendMessage() async {
+    final text = _messageController.text.trim();
+    if (text.isEmpty) return;
+
+    final message = {
+      'text': text,
+      'senderId': _auth.currentUser!.uid,
+      'timestamp': FieldValue.serverTimestamp(),
+    };
+
     await _firestore
         .collection('chats')
         .doc(widget.chat.id)
         .collection('messages')
-        .add({
-      'text': _controller.text.trim(),
-      'senderId': _auth.currentUser!.uid,
-      'timestamp': DateTime.now().toIso8601String(),
+        .add(message);
+
+    _messageController.clear();
+  }
+
+  // Optional: Add another participant to the chat
+  Future<void> _addParticipant(String userId) async {
+    await _firestore.collection('chats').doc(widget.chat.id).update({
+      'participants': FieldValue.arrayUnion([userId]),
     });
-    _controller.clear();
   }
 
   @override
   Widget build(BuildContext context) {
+    final currentUserId = _auth.currentUser!.uid;
+
     return Scaffold(
-      appBar: AppBar(title: Text(widget.chat.name), backgroundColor: const Color(0xFF2575FC)),
+      appBar: AppBar(
+        title: Text(widget.chat.name),
+        backgroundColor: const Color(0xFF2575FC),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_add),
+            onPressed: () {
+              // Example: Add a participant (you can make a user search dialog)
+              _addParticipant("otherUserUidHere");
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
@@ -42,30 +68,34 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
                   .collection('chats')
                   .doc(widget.chat.id)
                   .collection('messages')
-                  .orderBy('timestamp')
+                  .orderBy('timestamp', descending: false)
                   .snapshots(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
 
-                final messages = snapshot.data!.docs
-                    .map((doc) => Message.fromMap(doc.data() as Map<String, dynamic>))
-                    .toList();
-
+                final messages = snapshot.data!.docs;
                 return ListView.builder(
+                  padding: const EdgeInsets.all(8),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
-                    final msg = messages[index];
-                    final isMe = msg.senderId == _auth.currentUser!.uid;
+                    final msgData = messages[index].data() as Map<String, dynamic>;
+                    final isMe = msgData['senderId'] == currentUserId;
+
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.all(8),
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(10),
+                        margin: const EdgeInsets.symmetric(vertical: 4),
                         decoration: BoxDecoration(
-                          color: isMe ? Colors.blueAccent : Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(12),
+                          color: isMe ? Colors.blue : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: Text(msg.text, style: TextStyle(color: isMe ? Colors.white : Colors.black)),
+                        child: Text(
+                          msgData['text'],
+                          style: TextStyle(color: isMe ? Colors.white : Colors.black),
+                        ),
                       ),
                     );
                   },
@@ -73,19 +103,26 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
               },
             ),
           ),
-          Row(
-            children: [
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            color: Colors.grey[200],
+            child: Row(
+              children: [
+                Expanded(
                   child: TextField(
-                    controller: _controller,
-                    decoration: const InputDecoration(hintText: "Type a message"),
+                    controller: _messageController,
+                    decoration: const InputDecoration(
+                      hintText: "Type a message...",
+                      border: InputBorder.none,
+                    ),
                   ),
                 ),
-              ),
-              IconButton(onPressed: _sendMessage, icon: const Icon(Icons.send, color: Colors.blueAccent)),
-            ],
+                IconButton(
+                  icon: const Icon(Icons.send, color: Color(0xFF2575FC)),
+                  onPressed: _sendMessage,
+                ),
+              ],
+            ),
           ),
         ],
       ),
