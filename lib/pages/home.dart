@@ -28,10 +28,7 @@ class _HomePageState extends State<HomePage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           "New Chat",
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         content: TextField(
           controller: controller,
@@ -54,17 +51,21 @@ class _HomePageState extends State<HomePage> {
               final currentUserId = _auth.currentUser!.uid;
 
               if (friendId.isEmpty || friendId == currentUserId) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Invalid UID")),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text("Invalid UID")));
                 return;
               }
 
               // Fetch user details
-              final currentUserDoc =
-                  await _firestore.collection('users').doc(currentUserId).get();
-              final friendDoc =
-                  await _firestore.collection('users').doc(friendId).get();
+              final currentUserDoc = await _firestore
+                  .collection('users')
+                  .doc(currentUserId)
+                  .get();
+              final friendDoc = await _firestore
+                  .collection('users')
+                  .doc(friendId)
+                  .get();
 
               if (!friendDoc.exists) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -74,7 +75,6 @@ class _HomePageState extends State<HomePage> {
               }
 
               final chatId = _firestore.collection('chats').doc().id;
-              final now = DateTime.now();
 
               final namesMap = {
                 currentUserId: currentUserDoc.data()?['name'] ?? 'Me',
@@ -86,8 +86,8 @@ class _HomePageState extends State<HomePage> {
                 'participants': [currentUserId, friendId],
                 'names': namesMap,
                 'createdBy': currentUserId,
-                'createdAt': now,
-                'lastMessageAt': now,
+                'createdAt': FieldValue.serverTimestamp(),
+                'lastMessageAt': FieldValue.serverTimestamp(),
               });
 
               Navigator.pop(context);
@@ -107,8 +107,8 @@ class _HomePageState extends State<HomePage> {
     final currentUserId = _auth.currentUser!.uid;
     String chatName = "Chat";
 
-    if (chat.name != null) {
-      chat.name!.forEach((uid, name) {
+    if (chat.names != null) {
+      chat.names!.forEach((uid, name) {
         if (uid != currentUserId) {
           chatName = name;
         }
@@ -124,10 +124,7 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text(
           "Chit Chat",
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         elevation: 4,
@@ -147,7 +144,11 @@ class _HomePageState extends State<HomePage> {
             return const Center(
               child: Text(
                 "No chats yet",
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white54),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white54,
+                ),
               ),
             );
           }
@@ -158,11 +159,7 @@ class _HomePageState extends State<HomePage> {
           }).toList();
 
           chats.sort((a, b) {
-            final aTime =
-                a.toMap()['lastMessageAt'] as Timestamp? ?? Timestamp(0, 0);
-            final bTime =
-                b.toMap()['lastMessageAt'] as Timestamp? ?? Timestamp(0, 0);
-            return bTime.compareTo(aTime);
+            return b.lastMessageAt.compareTo(a.lastMessageAt);
           });
 
           return ListView.builder(
@@ -186,13 +183,17 @@ class _HomePageState extends State<HomePage> {
                     child: Text(
                       chatName.isNotEmpty ? chatName[0].toUpperCase() : "?",
                       style: const TextStyle(
-                          color: Colors.white, fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   title: Text(
                     chatName,
                     style: const TextStyle(
-                        fontWeight: FontWeight.bold, color: Colors.white),
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                   subtitle: StreamBuilder<QuerySnapshot>(
                     stream: _firestore
@@ -210,8 +211,9 @@ class _HomePageState extends State<HomePage> {
                           style: TextStyle(color: Colors.white54),
                         );
                       }
-                      final lastMsgData = msgSnapshot.data!.docs.first.data()
-                          as Map<String, dynamic>;
+                      final lastMsgData =
+                          msgSnapshot.data!.docs.first.data()
+                              as Map<String, dynamic>;
                       return Text(
                         lastMsgData['text'] ?? '',
                         maxLines: 1,
@@ -220,8 +222,11 @@ class _HomePageState extends State<HomePage> {
                       );
                     },
                   ),
-                  trailing: const Icon(Icons.chevron_right,
-                      color: Colors.white54, size: 24),
+                  trailing: const Icon(
+                    Icons.chevron_right,
+                    color: Colors.white54,
+                    size: 24,
+                  ),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -249,7 +254,11 @@ class _HomePageState extends State<HomePage> {
               );
             },
             backgroundColor: const Color(0xFF2C2C2C),
-            child: const Icon(Icons.qr_code_scanner, size: 28, color: Colors.white),
+            child: const Icon(
+              Icons.qr_code_scanner,
+              size: 28,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 16),
           FloatingActionButton(

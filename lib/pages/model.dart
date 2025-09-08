@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class Chat {
   final String id;
   final List<String> participants;
-  final Map<String, String>? name;  // Add this field
+  final Map<String, String>? names;  // Add this field
   final String createdBy;
   final DateTime createdAt;
   final DateTime lastMessageAt;
@@ -11,7 +11,7 @@ class Chat {
   Chat({
     required this.id,
     required this.participants,
-    this.name,  // Add this to constructor
+    this.names,  // Add this to constructor
     required this.createdBy,
     required this.createdAt,
     required this.lastMessageAt,
@@ -21,7 +21,7 @@ class Chat {
     return {
       'id': id,
       'participants': participants,
-      'name': name,  // Add this to map
+      'names': names,  // Add this to map
       'createdBy': createdBy,
       'createdAt': createdAt,
       'lastMessageAt': lastMessageAt,
@@ -32,7 +32,7 @@ class Chat {
     return Chat(
       id: map['id'],
       participants: List<String>.from(map['participants']),
-      name: map['names'] != null ? Map<String, String>.from(map['names']) : null,  // Add this
+      names: map['names'] != null ? Map<String, String>.from(map['names']) : null,  // Add this
       createdBy: map['createdBy'],
       createdAt: (map['createdAt'] as Timestamp).toDate(),
       lastMessageAt: (map['lastMessageAt'] as Timestamp).toDate(),

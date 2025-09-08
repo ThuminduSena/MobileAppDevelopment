@@ -42,8 +42,8 @@ class _ChatDetailPageState extends State<ChatDetailPage> {
     String chatName = "Chat";
 
     // Pick other participant's name
-    if (widget.chat.name != null) {
-      widget.chat.name!.forEach((uid, name) {
+    if (widget.chat.names != null) {
+      widget.chat.names!.forEach((uid, name) {
         if (uid != currentUserId) {
           chatName = name;
         }

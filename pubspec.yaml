@@ -39,6 +39,7 @@ dependencies:
   cloud_firestore: ^6.0.1
   qr_code_scanner_plus: ^2.0.10+1
   qr_flutter: ^4.1.0
+  permission_handler: ^11.0.1
   intl: ^0.18.1
 
   
